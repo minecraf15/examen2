@@ -1,0 +1,487 @@
+import tkinter as tk
+from tkinter import ttk
+from tkinter import *
+from tkinter import messagebox
+import mysql.connector
+from tkinter import colorchooser as colorchooser 
+import tkinter as tk
+import re
+from aa import gauss
+from tkinter import colorchooser as colorchooser
+
+
+# creamos la ventana principal
+ventana1 = tk.Tk()
+ventana1.title('Ventana principal')
+ventana1.geometry('500x150')
+ventana1.configure(bg="pink")
+sas=None
+
+def limitar(entrada, limite):
+    def limit(event):
+        texto = entrada.get()
+        if len(texto) >= limite and event.keysym != 'BackSpace':
+            return "break"
+    entrada.bind("<Key>", limit)
+    
+# definimos las acciones asociadas a las opciones de los menús
+def ADMINISTRADOR():
+    texto.configure(text='Has elegido iniciar como administrador')
+    ventana1.destroy()
+    global sas
+    sas="si"
+
+
+def TRABAJADOR():
+    texto.configure(text='Has elegido iniciar como trabajador')
+    ventana1.destroy()
+    global sas
+    sas="no"
+   
+
+# creamos una barra de menús y la añadimos a la ventana principal
+# cada ventana solo puede tener una barra de menús
+barra_menus = tk.Menu(ventana1)
+ventana1.config(menu=barra_menus)
+
+# creamos un menú cuyo contenedor será la barra de menús
+menu = tk.Menu(barra_menus, tearoff=False)
+
+# añadimos opciones al menú indicando su nombre y acción asociado
+menu.add_command(label='ADMINISTRADOR', command=ADMINISTRADOR)
+menu.add_command(label='TRABAJADOR', command=TRABAJADOR)
+
+
+# añadimos una línea separadora y la opción de salir
+menu.add_separator()
+menu.add_command(label='EXIT',  command=ventana1.destroy)
+menu.configure(bg="yellow")
+
+# finalmente añadimos el menú a la barra de menús
+barra_menus.add_cascade(label="MENU PARA INICIAR SESION", menu=menu)
+
+# añadimos una etiqueta para ver el efecto de los botones del menú
+texto = tk.Label(ventana1, text='BIENVENIDO, ESCOJE TU CUENTA PARA INICIAR', bg="pink",font=("Comic Sans Ms",12,"bold"))
+texto.place(x=50, y=50)
+   
+ventana1.mainloop()  
+    
+# Conectar a la base de datos
+class asf():
+    pass
+try:
+    db = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="",
+        database="alianza"
+    )
+except mysql.connector.Error as e:
+    messagebox.showerror("Error de conexión", f"No se pudo conectar a la base de datos: {e}")
+    exit()
+
+
+# Crear la tabla de trabajadores si no existe
+cursor = db.cursor()
+cursor.execute("CREATE TABLE IF NOT EXISTS trabajador (id INT AUTO_INCREMENT PRIMARY KEY, nombre VARCHAR(255), edad INT, correo VARCHAR(255), folio INT(11), oficio VARCHAR(255))")
+def validar_correo(correo):
+
+    patron = r'^[a-zA-Z]+@gmail.com$'
+    return re.match(patron, correo)
+
+# Función para leer  los trabajadores de la base de datos
+def leer_trabajadorDB():
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM trabajador")
+    return cursor.fetchall()
+
+# Función para agregar un nuevo trabajador a la base de datos
+def agregar_trabajadorDB(nombre, edad, correo, folio, oficio):
+    try:
+        cursor = db.cursor()
+        cursor.execute("INSERT INTO trabajador (nombre, edad, correo, folio, oficio ) VALUES (%s, %s, %s, %s, %s)", (nombre, edad, correo, folio, oficio))
+        db.commit()
+    except mysql.connector.Error as error:
+        messagebox.showerror("Error al agregar el trabajador", f"No se pudo agregar el trabajador: {error}")
+    finally:
+        cursor.close()
+
+
+# Función para actualizar un trabajador existente en la base de datos
+def actualizar_trabajadorDB(id, nombre, edad, correo, folio, oficio):
+    iid = int(id)
+    cursor = db.cursor()
+    cursor.execute("UPDATE `trabajador` SET `id`=%s,`nombre`=%s,`edad`=%s,`correo`=%s,`folio`=%s,`oficio`=%s WHERE id=%s", (iid, nombre, edad, correo, folio, oficio, iid))
+    db.commit()
+
+# Función para eliminar un alumno existente de la base de datos
+def eliminar_trabajadorDB(id):
+    cursor = db.cursor()
+    cursor.execute("DELETE FROM trabajador WHERE id = %s", (id,))
+    db.commit()
+
+# Función para mostrar una lista de todos los alumnos
+def mostrar_trabajador():
+    # Limpiar la tabla
+    for widget in tabla_trabajador.winfo_children():
+        widget.destroy()
+
+    # Obtener todos los alumnos
+    trabajador = leer_trabajadorDB()
+
+    # Mostrar los alumnos en la tabla
+    for i, trabajador in enumerate(trabajador):
+        id = trabajador[0]
+        nombre = trabajador[1]
+        edad = trabajador[2]
+        correo = trabajador[3]
+        folio = trabajador[4]
+        oficio = trabajador[5]
+
+        Label(tabla_trabajador, text=id).grid(row=i, column=0)
+        Label(tabla_trabajador, text=nombre).grid(row=i, column=1)
+        Label(tabla_trabajador, text=edad).grid(row=i, column=2)
+        Label(tabla_trabajador, text=correo).grid(row=i, column=3)
+        Label(tabla_trabajador, text=folio).grid(row=i, column=4)
+        Label(tabla_trabajador, text=oficio).grid(row=i, column=5)
+
+# Función para agregar un nuevo alumno
+def agregar_trabajador():
+
+    # Obtener los datos del nuevo alumno
+    try:
+        correo = entrada_correo.get().lower()
+        if validar_correo(correo):
+            pass
+        else:
+            messagebox.showerror(message="El correo electronico no es valido")
+            return
+        
+        edad = int(entrada_edad.get())
+        if edad>=0 and edad<=99:
+            pass
+        else:
+            messagebox.showerror(message="Ingresa una edad menor de o igual a '99'")
+            return
+        folio = int(entrada_folio.get())
+
+        nombre = entrada_nombre.get()
+        oficio = entrada_oficio.get()
+        validar_nombre(nombre)
+        validar_nombre(oficio)
+        oficio = entrada_oficio.get()
+        
+    except Exception:
+        pass
+    
+    def validar_nombre(nombre):
+      return bool(re.match(r"^[a-zA-Z]+(([',. -][a-zA-Z ])?[a-zA-Z])$", nombre))
+     
+      
+    # Validar que los campos no estén vacíos
+    if not nombre or not edad or not correo or not folio or not oficio:
+        messagebox.showerror("Error al agregar el trabajador", "Por favor ingrese todos los datos del trabajador")
+        return
+
+    # Agregar el nuevo alumno
+    agregar_trabajadorDB(nombre, edad, correo, folio, oficio)
+
+    # Limpiar los campos de entrada
+    entrada_nombre.delete(0, END)
+    entrada_edad.delete(0, END)
+    entrada_correo.delete(0, END)
+    entrada_folio.delete(0,END)
+    entrada_oficio.delete(0,END)
+
+    # Mostrar la lista actualizada de alumnos
+    mostrar_trabajador()
+
+# Función para actualizar un alumno existente
+def actualizar_trabajador():
+    # Obtener los datos del alumno a actualizar
+    try:
+        nombre = entrada_nombre.get()
+        oficio = entrada_oficio.get()
+        if nombre.isalpha() or oficio.isalpha():
+            pass
+        else:
+            messagebox.showerror(message="La entrada nombre u oficio contiene carcteres no validos")
+            return
+        edad = int(entrada_edad.get())        
+        if edad>=0 and edad<=99:
+            pass
+        else:
+            messagebox.showerror(message="Ingresa una edad menor de o igual a '99'")
+            return
+        correo = entrada_correo.get().lower()
+        if validar_correo(correo):
+            pass
+        else:
+            messagebox.showerror(message="El correo electronico no es valido")
+            return
+
+        folio = int(entrada_folio.get())
+
+        id = int(entrada_id.get())
+    except:
+        messagebox.showerror(title="datos erroneos",message="datos erroneos")
+    
+    # Validar que los campos no estén vacíos
+    if not id or not nombre or not edad or not correo or not folio or not oficio:
+        messagebox.showerror("Error al actualizar al trabajador", "Por favor ingrese todos los datos del trabajador")
+        return
+
+    # Actualizar el alumno
+    actualizar_trabajadorDB(id=id,nombre=nombre,edad=edad,correo=correo,folio=folio,oficio=oficio)
+
+    # Limpiar los campos de entrada
+    entrada_id.delete(0, END)
+    entrada_nombre.delete(0, END)
+    entrada_edad.delete(0, END)
+    entrada_correo.delete(0, END)
+    entrada_folio.delete(0, END)
+    entrada_oficio.delete(0, END)
+    
+    # Mostrar la lista actualizada de alumnos
+    mostrar_trabajador()
+
+
+# Función para eliminar un alumno existente
+def eliminar_trabajador(self):
+    # Obtener el ID del alumno a eliminar
+    id = entrada_id.get()
+
+    # Validar que se haya ingresado un ID
+    if not id:
+        messagebox.showerror("Error al eliminar el trabajador", "Por favor ingrese el ID del trabajdor")
+        return
+
+    # Preguntar al usuario si está seguro de eliminar el alumno
+    confirmar = messagebox.askyesno("Confirmar eliminación", "¿Está seguro de eliminar este Trabajador?")
+
+    if confirmar:
+        # Eliminar el alumno
+        eliminar_trabajadorDB(id)
+
+        # Limpiar los campos de entrada
+        entrada_id.delete(0, END)
+        entrada_nombre.delete(0, END)
+        entrada_edad.delete(0, END)
+        entrada_correo.delete(0, END)
+        entrada_folio.delete(0,END)
+        entrada_oficio.delete(0,END)
+
+        # Mostrar la lista actualizada de alumnos
+        mostrar_trabajador()
+def limpiar():
+    entrada_id.delete(0,END)
+    entrada_nombre.delete(0,END)
+    entrada_edad.delete(0,END)
+    entrada_correo.delete(0,END)
+    entrada_folio.delete(0,END)
+    entrada_oficio.delete(0,END)
+  
+def cerrar():
+
+        global entrada_correo
+        global entrada_edad
+        global entrada_folio
+        global entrada_id
+        global entrada_nombre
+        global entrada_oficio
+        global tabla_trabajador
+   
+        ventana = Tk()
+        ventana.title("LISTA DE TRABAJADORES")
+        ventana.configure(padx=5)
+        ventana.configure(bg="light goldenrod")
+     
+        # Crear los campos de entrada para los datos del alumno
+        Label(ventana, text="Id:",bg="light goldenrod" ).grid(row=0, column=0, padx=40, pady=15)
+        entrada_id = Entry(ventana)
+        entrada_id.grid(row=0, column=1, padx=40, pady=15)
+        entrada_id.configure(bg="lavender")
+
+        Label(ventana, text="Nombre:",bg="light goldenrod" ).grid(row=1, column=0, padx=40, pady=15)
+        entrada_nombre = Entry(ventana)
+        entrada_nombre.grid(row=1, column=1, padx=40, pady=15)
+        limitar(entrada_nombre,20)
+        entrada_nombre.configure(bg="lavender")
+        
+        Label(ventana, text="Edad:",bg="light goldenrod" ).grid(row=2, column=0, padx=40, pady=15)
+        entrada_edad = Entry(ventana)
+        entrada_edad.grid(row=2, column=1, padx=40, pady=15)
+        entrada_edad.configure(bg="lavender")
+        
+        
+        limitar(entrada_edad,3)
+       
+        Label(ventana, text="Correo:",bg="light goldenrod" ).grid(row=3, column=0, padx=40, pady=15)
+        entrada_correo = Entry(ventana)
+        limitar(entrada_correo,20)
+        entrada_correo.grid(row=3, column=1, padx=40, pady=15)
+        entrada_correo.configure(bg="lavender")
+
+        Label(ventana, text="Folio:",bg="light goldenrod").grid(row=4, column=0, padx=40, pady=15)
+        entrada_folio = Entry(ventana)
+        limitar(entrada_folio,10)
+        entrada_folio.grid(row=4, column=1, padx=40, pady=15)
+        entrada_folio.configure(bg="lavender")
+
+        Label(ventana, text="Oficio:",bg="light goldenrod" ).grid(row=5, column=0, padx=40, pady=15)
+        entrada_oficio = Entry(ventana)
+        limitar(entrada_oficio,10)
+        entrada_oficio.grid(row=5, column=1, padx=40, pady=15)
+        entrada_oficio.configure(bg="lavender")
+
+
+        # Crear los botones para agregar, actualizar y eliminar alumnos
+        Button(ventana, text="AGREGAR TRABAJADOR", command=agregar_trabajador, bg="AZURE",borderwidth=10).grid(row=0, column=2, padx=40, pady=15)
+        Button(ventana, text="ACTUALIZAR TRABAJADOR", command=actualizar_trabajador, bg="AZURE",borderwidth=10).grid(row=1, column=2, padx=40, pady=15)
+        Button(ventana, text="ELIMINAR TRABAJADOR", command=eliminar_trabajador, bg="AZURE",borderwidth=10).grid(row=2, column=2, padx=40, pady=15)
+        Button(ventana, text="LIMPIAR CAMPOS", command=limpiar, bg="AZURE",borderwidth=10).grid(row=3, column=2, padx=40, pady=15)
+
+        # Crear la tabla para mostrar los alumnos
+        tabla_trabajador = Frame(ventana)
+        tabla_trabajador.grid(row=6, column=0, columnspan=3, padx=40, pady=15)
+
+
+        Label(tabla_trabajador, text="ID",font=("Comic Sans Ms",12)).grid(row=0, column=0)
+        Label(tabla_trabajador, text="Nombre",font=("Comic Sans Ms",12)).grid(row=0, column=1)
+        Label(tabla_trabajador, text="Edad",font=("Comic Sans Ms",12)).grid(row=0, column=2)
+        Label(tabla_trabajador, text="Correo",font=("Comic Sans Ms",12)).grid(row=0, column=3)
+        Label(tabla_trabajador, text="Folio",font=("Comic Sans Ms",12,"bold")).grid(row=0, column=4)
+        Label(tabla_trabajador, text="Oficio",font=("Comic Sans Ms",12)).grid(row=0, column=5)
+
+        # Mostrar la lista de alumnos en la tabla
+        mostrar_trabajador()
+
+        # Iniciar el loop de la ventana
+        ventana.mainloop()
+        
+def limite(new_value):
+        if len(new_value) <= 10 and new_value.isalpha():
+            return True
+        else:
+            return False
+        
+        
+def hpg(new_value):
+    if len(new_value) <= 10 and new_value.isdigit():
+            return True
+    else:
+            return False
+
+class Mexico(tk.Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.zora()
+        self.usuarios = {'ppp': '123', 'ANGEL': '123', 'EDUARDO Creed': '123'}
+
+        # Horarios preterminados
+        self.horarios = {'ppp': {'Lunes': ['8:00', '9:30', '11:00'], 
+                                 'Martes': ['9:00', '10:30', '12:00'],
+                                 'Miércoles': ['10:00', '11:30', '1:00'],
+                                 'Jueves': ['11:00', '12:30', '2:00'],
+                                 'Viernes': ['12:00', '1:30', '3:00']}, 
+                         'ANGEL': {'Lunes': ['9:00', '10:30', '12:00'], 
+                                   'Martes': ['10:00', '11:30', '1:00'],
+                                   'Miércoles': ['11:00', '12:30', '2:00'],
+                                   'Jueves': ['12:00', '1:30', '3:00'],
+                                   'Viernes': ['1:00', '2:30', '4:00']},
+                         'EDUARDO Creed': {'Lunes': ['10:00', '11:30', '1:00'], 
+                                           'Martes': ['11:00', '12:30', '2:00'],
+                                           'Miércoles': ['12:00', '1:30', '3:00'],
+                                           'Jueves': ['1:00', '2:30', '4:00'],
+                                           'Viernes': ['2:00', '3:30', '5:00']}}
+
+    def zora(self):
+        self.fra = Frame()
+        resultado = tk.Label(self.fra, text="BIENVENIDO",font=("Comic Sans Ms",12,"bold"),background="cornsilk4")
+        resultado.pack(pady=30)
+      
+        # Crear los campos de usuario y contraseña
+        etiqueta_usuario = ttk.Label(self.fra, text="Usuario:",font=("Comic Sans Ms",12,"bold"),background="cornsilk4")
+        etiqueta_usuario.pack(pady=20)
+        self.campo_usuario = ttk.Entry(self.fra,)
+        self.campo_usuario.pack()
+        vcmd = (self.register(self.validar_caracteres112), '%P')
+        self.campo_usuario.config(validate='key', validatecommand=vcmd)
+        etiqueta_contraseña = ttk.Label(self.fra, text="Contraseña:",font=("Comic Sans Ms",12,"bold"),background="cornsilk4")
+        etiqueta_contraseña.pack(pady=20)
+        self.campo_contraseña = ttk.Entry(self.fra, show="*")
+        self.campo_contraseña.pack()
+        vcmd = (self.register(self.validar_caracteres), '%P')
+        self.campo_contraseña.config(validate='key', validatecommand=vcmd)  
+    
+        boton_inicio = tk.Button(self.fra, text="Iniciar sesión", command=self.iniciar_sesion,borderwidth=10,background="cornsilk4")
+        boton_inicio.pack(pady=30)
+        self.fra.config(width=600, height=880,background="cornsilk4")
+        self.fra.place(x=190, y=100)
+
+    def iniciar_sesion(self):
+        self.usuario = self.campo_usuario.get()
+        self.contraseña = self.campo_contraseña.get()
+
+        if self.usuario in self.usuarios and self.usuarios[self.usuario] == self.contraseña:
+            messagebox.showinfo(" ","Inicio de sesión exitoso")
+            self.master.destroy()
+            self.ventana_horarios(self.usuario)
+        else:
+            messagebox.showerror(" ","  Iniciar sesion fallida ")
+            
+    def validar_caracteres112(self, new_value):
+        if len(new_value) <= 10 and new_value.isalpha():
+            return True
+        else:
+            return False
+
+
+
+    def validar_caracteres(self, new_value):
+        if len(new_value) <= 10 and new_value.isdigit():
+            return True
+        else:
+            return False
+
+    def ventana_horarios(self, usuario):
+        horario = self.horarios[usuario]
+
+        ventana = tk.Tk()
+        ventana.title("HORARIO DE " + usuario)
+
+        tabla = ttk.Treeview(ventana, columns=("dia", "primerviaje", "segundoviaje", "tercerviaje"), show="headings")
+        tabla.heading("dia", text="Día")
+        tabla.heading("primerviaje", text="Primer Viaje")
+        tabla.heading("segundoviaje", text="Segundo Viaje")
+        tabla.heading("tercerviaje", text="Tercer Viaje")
+      
+        for dia, horas in horario.items():
+            fila = (dia,) + tuple(horas)
+            tabla.insert("", "end", values=fila)
+
+        tabla.pack()
+        ventana.mainloop()
+        
+        
+        
+
+if sas=="si":
+    root=tk.Tk()
+    root.geometry("500x650")
+    root.wm_resizable(False,False)
+    root.title("......")
+    van=gauss(root) 
+    van.mainloop()
+elif sas=="no":
+    root=tk.Tk()
+    root.geometry("500x650")
+    root.wm_resizable(False,False)
+    root.title("......")
+    root.configure(background="cornsilk4")
+    van=Mexico(root) 
+    van.mainloop()
+    
+if van.destroy and sas=="si":
+    
+    cerrar()
